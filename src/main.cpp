@@ -78,8 +78,8 @@ TEST(Header, Executable) {
 
 TEST(Header, SharedObject) {
     ElfData answer =
-        answerGetELFData("/usr/lib/gcc/x86_64-linux-gnu/5/libgcc_s.so");
-    ElfData test = getELFData("/usr/lib/gcc/x86_64-linux-gnu/5/libgcc_s.so");
+        answerGetELFData("/usr/lib/gcc/x86_64-linux-gnu/7/libgcc_s.so");
+    ElfData test = getELFData("/usr/lib/gcc/x86_64-linux-gnu/7/libgcc_s.so");
     Elf64_Ehdr answerHeader = answer.elfHeader;
     Elf64_Ehdr testHeader = test.elfHeader;
     EXPECT_EQ(0, memcmp(testHeader.e_ident, answerHeader.e_ident, EI_NIDENT));
@@ -123,8 +123,8 @@ TEST(ProgramHeader, Executable) {
 
 TEST(ProgramHeader, SharedObject) {
     ElfData answer =
-        answerGetELFData("/usr/lib/gcc/x86_64-linux-gnu/5/libgcc_s.so");
-    ElfData test = getELFData("/usr/lib/gcc/x86_64-linux-gnu/5/libgcc_s.so");
+        answerGetELFData("/usr/lib/gcc/x86_64-linux-gnu/7/libgcc_s.so");
+    ElfData test = getELFData("/usr/lib/gcc/x86_64-linux-gnu/7/libgcc_s.so");
     Elf64_Phdr* answerHeader = answer.programHeader;
     Elf64_Phdr* testHeader = test.programHeader;
     for (int x = 0; x < answer.elfHeader.e_phnum; x++) {
@@ -152,8 +152,8 @@ TEST(Sections, Executable) {
 
 TEST(Sections, SharedObject) {
     ElfData answer =
-        answerGetELFData("/usr/lib/gcc/x86_64-linux-gnu/5/libgcc_s.so");
-    ElfData test = getELFData("/usr/lib/gcc/x86_64-linux-gnu/5/libgcc_s.so");
+        answerGetELFData("/usr/lib/gcc/x86_64-linux-gnu/7/libgcc_s.so");
+    ElfData test = getELFData("/usr/lib/gcc/x86_64-linux-gnu/7/libgcc_s.so");
     EXPECT_EQ(answer.elfHeader.e_shnum, test.elfHeader.e_shnum);
     compareSections(answer.elfHeader.e_shnum, answer.sections, test.sections);
     answerDestroyELFData(answer);
@@ -172,8 +172,8 @@ TEST(DynamicSymbols, Executable) {
 
 TEST(DynamicSymbols, SharedObject) {
     ElfData answer =
-        answerGetELFData("/usr/lib/gcc/x86_64-linux-gnu/5/libgcc_s.so");
-    ElfData test = getELFData("/usr/lib/gcc/x86_64-linux-gnu/5/libgcc_s.so");
+        answerGetELFData("/usr/lib/gcc/x86_64-linux-gnu/7/libgcc_s.so");
+    ElfData test = getELFData("/usr/lib/gcc/x86_64-linux-gnu/7/libgcc_s.so");
     ElfSymbolList answerSymbols = answer.dynSymbols;
     ElfSymbolList testSymbols = test.dynSymbols;
     compareElfSymbolList(answerSymbols, testSymbols);
@@ -193,8 +193,8 @@ TEST(OtherSymbols, ExecutableEmpty) {
 
 TEST(OtherSymbols, SharedObjectEmpty) {
     ElfData answer =
-        answerGetELFData("/usr/lib/gcc/x86_64-linux-gnu/5/libgcc_s.so");
-    ElfData test = getELFData("/usr/lib/gcc/x86_64-linux-gnu/5/libgcc_s.so");
+        answerGetELFData("/usr/lib/gcc/x86_64-linux-gnu/7/libgcc_s.so");
+    ElfData test = getELFData("/usr/lib/gcc/x86_64-linux-gnu/7/libgcc_s.so");
     ElfSymbolList answerSymbols = answer.otherSymbols;
     ElfSymbolList testSymbols = test.otherSymbols;
     compareElfSymbolList(answerSymbols, testSymbols);
