@@ -1,19 +1,21 @@
 #include <elf.h>
+#include <unistd.h>
 #include "elf_common_cpp.h"
 #include "gtest/gtest.h"
 
-void compareSections(int numSections, ElfSection* expected, ElfSection* actual);
+void compareSections(int numSections, ElfSection *expected, ElfSection *actual);
 void compareSectionHeaders(Elf64_Shdr expected, Elf64_Shdr actual);
 void compareElfSymbol(ElfSymbol expected, ElfSymbol actual);
 void compareElfSymbolList(ElfSymbolList expected, ElfSymbolList actual);
+bool fileReadable(const char *path);
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
 
-void compareSections(int numSections, ElfSection* expected,
-                     ElfSection* actual) {
+void compareSections(int numSections, ElfSection *expected,
+                     ElfSection *actual) {
     for (int x = 0; x < numSections; x++) {
         compareSectionHeaders(expected[x].sectionHeader,
                               actual[x].sectionHeader);
@@ -34,13 +36,6 @@ void compareSectionHeaders(Elf64_Shdr expected, Elf64_Shdr actual) {
     EXPECT_EQ(expected.sh_entsize, actual.sh_entsize);
 }
 
-void compareElfSymbolList(ElfSymbolList expected, ElfSymbolList actual) {
-    EXPECT_EQ(expected.size, actual.size);
-    for (int x = 0; x < actual.size; x++) {
-        compareElfSymbol(expected.list[x], actual.list[x]);
-    }
-}
-
 void compareElfSymbol(ElfSymbol expected, ElfSymbol actual) {
     EXPECT_EQ(expected.symbol.st_name, actual.symbol.st_name);
     EXPECT_EQ(expected.symbol.st_info, actual.symbol.st_info);
@@ -53,9 +48,46 @@ void compareElfSymbol(ElfSymbol expected, ElfSymbol actual) {
     }
 }
 
+void compareElfSymbolList(ElfSymbolList expected, ElfSymbolList actual) {
+    EXPECT_EQ(expected.size, actual.size);
+    for (int x = 0; x < actual.size; x++) {
+        compareElfSymbol(expected.list[x], actual.list[x]);
+    }
+}
+
+bool fileReadable(const char *path) {
+    if (access(path, R_OK) != -1) {
+        return true;
+    }
+    return false;
+}
+
+const char *ELF_BINARY = "/bin/ls";
+const char *ELF_SHARED_OBJECT = "/usr/lib/gcc/x86_64-linux-gnu/7/libgcc_s.so.1";
+const char *ELF_OTHER_SYMBOLS = "lib/ELFTest";
+const char *NON_EXISTENT_FILE = "/bin/__THIS_FILE_DOES_NOT_EXIST__";
+const char *NON_ELF_FILE = "src/main.cpp";
+
+TEST(System, ElfBinaryExists) { EXPECT_EQ(true, fileReadable(ELF_BINARY)); }
+
+TEST(System, ElfSharedObjectExists) {
+    EXPECT_EQ(true, fileReadable(ELF_SHARED_OBJECT));
+}
+
+TEST(System, ElfOtherSymbolsExists) {
+    EXPECT_EQ(true, fileReadable(ELF_OTHER_SYMBOLS));
+}
+
+TEST(System, NonExistantFile) {
+    EXPECT_EQ(false, fileReadable(NON_EXISTENT_FILE));
+}
+
+TEST(System, NonElfFileExists) { EXPECT_EQ(true, fileReadable(NON_ELF_FILE)); }
+
 TEST(Header, Executable) {
-    ElfData answer = answerGetELFData("/bin/ls");
-    ElfData test = getELFData("/bin/ls");
+    const char *testPath = ELF_BINARY;
+    ElfData answer = answerGetELFData(testPath);
+    ElfData test = getELFData(testPath);
     Elf64_Ehdr answerHeader = answer.elfHeader;
     Elf64_Ehdr testHeader = test.elfHeader;
     EXPECT_EQ(0, memcmp(testHeader.e_ident, answerHeader.e_ident, EI_NIDENT));
@@ -77,9 +109,9 @@ TEST(Header, Executable) {
 }
 
 TEST(Header, SharedObject) {
-    ElfData answer =
-        answerGetELFData("/usr/lib/gcc/x86_64-linux-gnu/7/libgcc_s.so");
-    ElfData test = getELFData("/usr/lib/gcc/x86_64-linux-gnu/7/libgcc_s.so");
+    const char *testPath = ELF_SHARED_OBJECT;
+    ElfData answer = answerGetELFData(testPath);
+    ElfData test = getELFData(testPath);
     Elf64_Ehdr answerHeader = answer.elfHeader;
     Elf64_Ehdr testHeader = test.elfHeader;
     EXPECT_EQ(0, memcmp(testHeader.e_ident, answerHeader.e_ident, EI_NIDENT));
@@ -101,10 +133,11 @@ TEST(Header, SharedObject) {
 }
 
 TEST(ProgramHeader, Executable) {
-    ElfData answer = answerGetELFData("/bin/ls");
-    ElfData test = getELFData("/bin/ls");
-    Elf64_Phdr* answerHeader = answer.programHeader;
-    Elf64_Phdr* testHeader = test.programHeader;
+    const char *testPath = ELF_BINARY;
+    ElfData answer = answerGetELFData(testPath);
+    ElfData test = getELFData(testPath);
+    Elf64_Phdr *answerHeader = answer.programHeader;
+    Elf64_Phdr *testHeader = test.programHeader;
 
     for (int x = 0; x < answer.elfHeader.e_phnum; x++) {
         EXPECT_EQ(answerHeader[x].p_type, testHeader[x].p_type);
@@ -122,11 +155,11 @@ TEST(ProgramHeader, Executable) {
 }
 
 TEST(ProgramHeader, SharedObject) {
-    ElfData answer =
-        answerGetELFData("/usr/lib/gcc/x86_64-linux-gnu/7/libgcc_s.so");
-    ElfData test = getELFData("/usr/lib/gcc/x86_64-linux-gnu/7/libgcc_s.so");
-    Elf64_Phdr* answerHeader = answer.programHeader;
-    Elf64_Phdr* testHeader = test.programHeader;
+    const char *testPath = ELF_SHARED_OBJECT;
+    ElfData answer = answerGetELFData(testPath);
+    ElfData test = getELFData(testPath);
+    Elf64_Phdr *answerHeader = answer.programHeader;
+    Elf64_Phdr *testHeader = test.programHeader;
     for (int x = 0; x < answer.elfHeader.e_phnum; x++) {
         EXPECT_EQ(answerHeader[x].p_type, testHeader[x].p_type);
         EXPECT_EQ(answerHeader[x].p_flags, testHeader[x].p_flags);
@@ -142,8 +175,9 @@ TEST(ProgramHeader, SharedObject) {
 }
 
 TEST(Sections, Executable) {
-    ElfData answer = answerGetELFData("/bin/ls");
-    ElfData test = getELFData("/bin/ls");
+    const char *testPath = ELF_BINARY;
+    ElfData answer = answerGetELFData(testPath);
+    ElfData test = getELFData(testPath);
     EXPECT_EQ(answer.elfHeader.e_shnum, test.elfHeader.e_shnum);
     compareSections(answer.elfHeader.e_shnum, answer.sections, test.sections);
     answerDestroyELFData(answer);
@@ -151,9 +185,9 @@ TEST(Sections, Executable) {
 }
 
 TEST(Sections, SharedObject) {
-    ElfData answer =
-        answerGetELFData("/usr/lib/gcc/x86_64-linux-gnu/7/libgcc_s.so");
-    ElfData test = getELFData("/usr/lib/gcc/x86_64-linux-gnu/7/libgcc_s.so");
+    const char *testPath = ELF_SHARED_OBJECT;
+    ElfData answer = answerGetELFData(testPath);
+    ElfData test = getELFData(testPath);
     EXPECT_EQ(answer.elfHeader.e_shnum, test.elfHeader.e_shnum);
     compareSections(answer.elfHeader.e_shnum, answer.sections, test.sections);
     answerDestroyELFData(answer);
@@ -161,8 +195,9 @@ TEST(Sections, SharedObject) {
 }
 
 TEST(DynamicSymbols, Executable) {
-    ElfData answer = answerGetELFData("/bin/ls");
-    ElfData test = getELFData("/bin/ls");
+    const char *testPath = ELF_BINARY;
+    ElfData answer = answerGetELFData(testPath);
+    ElfData test = getELFData(testPath);
     ElfSymbolList answerSymbols = answer.dynSymbols;
     ElfSymbolList testSymbols = test.dynSymbols;
     compareElfSymbolList(answerSymbols, testSymbols);
@@ -171,9 +206,9 @@ TEST(DynamicSymbols, Executable) {
 }
 
 TEST(DynamicSymbols, SharedObject) {
-    ElfData answer =
-        answerGetELFData("/usr/lib/gcc/x86_64-linux-gnu/7/libgcc_s.so");
-    ElfData test = getELFData("/usr/lib/gcc/x86_64-linux-gnu/7/libgcc_s.so");
+    const char *testPath = ELF_SHARED_OBJECT;
+    ElfData answer = answerGetELFData(testPath);
+    ElfData test = getELFData(testPath);
     ElfSymbolList answerSymbols = answer.dynSymbols;
     ElfSymbolList testSymbols = test.dynSymbols;
     compareElfSymbolList(answerSymbols, testSymbols);
@@ -182,8 +217,9 @@ TEST(DynamicSymbols, SharedObject) {
 }
 
 TEST(OtherSymbols, ExecutableEmpty) {
-    ElfData answer = answerGetELFData("/bin/ls");
-    ElfData test = getELFData("/bin/ls");
+    const char *testPath = ELF_BINARY;
+    ElfData answer = answerGetELFData(testPath);
+    ElfData test = getELFData(testPath);
     ElfSymbolList answerSymbols = answer.otherSymbols;
     ElfSymbolList testSymbols = test.otherSymbols;
     compareElfSymbolList(answerSymbols, testSymbols);
@@ -192,9 +228,9 @@ TEST(OtherSymbols, ExecutableEmpty) {
 }
 
 TEST(OtherSymbols, SharedObjectEmpty) {
-    ElfData answer =
-        answerGetELFData("/usr/lib/gcc/x86_64-linux-gnu/7/libgcc_s.so");
-    ElfData test = getELFData("/usr/lib/gcc/x86_64-linux-gnu/7/libgcc_s.so");
+    const char *testPath = ELF_SHARED_OBJECT;
+    ElfData answer = answerGetELFData(testPath);
+    ElfData test = getELFData(testPath);
     ElfSymbolList answerSymbols = answer.otherSymbols;
     ElfSymbolList testSymbols = test.otherSymbols;
     compareElfSymbolList(answerSymbols, testSymbols);
@@ -203,8 +239,9 @@ TEST(OtherSymbols, SharedObjectEmpty) {
 }
 
 TEST(OtherSymbols, Executable) {
-    ElfData answer = answerGetELFData("../lib/ELFTest");
-    ElfData test = getELFData("../lib/ELFTest");
+    const char *testPath = ELF_OTHER_SYMBOLS;
+    ElfData answer = answerGetELFData(testPath);
+    ElfData test = getELFData(testPath);
     ElfSymbolList answerSymbols = answer.otherSymbols;
     ElfSymbolList testSymbols = test.otherSymbols;
     compareElfSymbolList(answerSymbols, testSymbols);
@@ -213,14 +250,14 @@ TEST(OtherSymbols, Executable) {
 }
 
 TEST(Error, NonExistentFile) {
-    ElfData test = getELFData("test");
+    ElfData test = getELFData(NON_EXISTENT_FILE);
     ElfData answer;
     bzero(&answer, sizeof(ElfData));
     EXPECT_EQ(0, memcmp(&answer, &test, sizeof(ElfData)));
 }
 
 TEST(Error, NonELFFile) {
-    ElfData test = getELFData("./main.cpp");
+    ElfData test = getELFData(NON_ELF_FILE);
     ElfData answer;
     bzero(&answer, sizeof(ElfData));
     EXPECT_EQ(0, memcmp(&answer, &test, sizeof(ElfData)));
