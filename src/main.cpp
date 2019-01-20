@@ -7,6 +7,7 @@ void compareSections(int numSections, ElfSection *expected, ElfSection *actual);
 void compareSectionHeaders(Elf64_Shdr expected, Elf64_Shdr actual);
 void compareElfSymbol(ElfSymbol expected, ElfSymbol actual);
 void compareElfSymbolList(ElfSymbolList expected, ElfSymbolList actual);
+bool elfDataEmpty(ElfData data);
 bool fileReadable(const char *path);
 
 int main(int argc, char **argv) {
@@ -19,7 +20,7 @@ void compareSections(int numSections, ElfSection *expected,
     for (int x = 0; x < numSections; x++) {
         compareSectionHeaders(expected[x].sectionHeader,
                               actual[x].sectionHeader);
-        EXPECT_EQ(0, strcmp(expected->sectionName, actual->sectionName));
+        EXPECT_STREQ(expected[x].sectionName, actual[x].sectionName);
     }
 }
 
@@ -43,8 +44,10 @@ void compareElfSymbol(ElfSymbol expected, ElfSymbol actual) {
     EXPECT_EQ(expected.symbol.st_shndx, actual.symbol.st_shndx);
     EXPECT_EQ(expected.symbol.st_value, actual.symbol.st_value);
     EXPECT_EQ(expected.symbol.st_size, actual.symbol.st_size);
-    if (expected.name && actual.name) {
-        EXPECT_EQ(0, strcmp(expected.name, actual.name));
+    if (expected.name) {
+        EXPECT_STREQ(expected.name, actual.name);
+    } else {
+        EXPECT_EQ(expected.name, actual.name);
     }
 }
 
@@ -53,6 +56,12 @@ void compareElfSymbolList(ElfSymbolList expected, ElfSymbolList actual) {
     for (int x = 0; x < actual.size; x++) {
         compareElfSymbol(expected.list[x], actual.list[x]);
     }
+}
+
+bool elfDataEmpty(ElfData data) {
+    ElfData empty;
+    bzero(&empty, sizeof(ElfData));
+    return 0 == memcmp(&empty, &data, sizeof(ElfData));
 }
 
 bool fileReadable(const char *path) {
@@ -88,6 +97,7 @@ TEST(Header, Executable) {
     const char *testPath = ELF_BINARY;
     ElfData answer = answerGetELFData(testPath);
     ElfData test = getELFData(testPath);
+    EXPECT_FALSE(elfDataEmpty(test));
     Elf64_Ehdr answerHeader = answer.elfHeader;
     Elf64_Ehdr testHeader = test.elfHeader;
     EXPECT_EQ(0, memcmp(testHeader.e_ident, answerHeader.e_ident, EI_NIDENT));
@@ -112,6 +122,7 @@ TEST(Header, SharedObject) {
     const char *testPath = ELF_SHARED_OBJECT;
     ElfData answer = answerGetELFData(testPath);
     ElfData test = getELFData(testPath);
+    EXPECT_FALSE(elfDataEmpty(test));
     Elf64_Ehdr answerHeader = answer.elfHeader;
     Elf64_Ehdr testHeader = test.elfHeader;
     EXPECT_EQ(0, memcmp(testHeader.e_ident, answerHeader.e_ident, EI_NIDENT));
@@ -136,6 +147,7 @@ TEST(ProgramHeader, Executable) {
     const char *testPath = ELF_BINARY;
     ElfData answer = answerGetELFData(testPath);
     ElfData test = getELFData(testPath);
+    EXPECT_FALSE(elfDataEmpty(test));
     Elf64_Phdr *answerHeader = answer.programHeader;
     Elf64_Phdr *testHeader = test.programHeader;
 
@@ -158,6 +170,7 @@ TEST(ProgramHeader, SharedObject) {
     const char *testPath = ELF_SHARED_OBJECT;
     ElfData answer = answerGetELFData(testPath);
     ElfData test = getELFData(testPath);
+    EXPECT_FALSE(elfDataEmpty(test));
     Elf64_Phdr *answerHeader = answer.programHeader;
     Elf64_Phdr *testHeader = test.programHeader;
     for (int x = 0; x < answer.elfHeader.e_phnum; x++) {
@@ -178,6 +191,7 @@ TEST(Sections, Executable) {
     const char *testPath = ELF_BINARY;
     ElfData answer = answerGetELFData(testPath);
     ElfData test = getELFData(testPath);
+    EXPECT_FALSE(elfDataEmpty(test));
     EXPECT_EQ(answer.elfHeader.e_shnum, test.elfHeader.e_shnum);
     compareSections(answer.elfHeader.e_shnum, answer.sections, test.sections);
     answerDestroyELFData(answer);
@@ -188,6 +202,7 @@ TEST(Sections, SharedObject) {
     const char *testPath = ELF_SHARED_OBJECT;
     ElfData answer = answerGetELFData(testPath);
     ElfData test = getELFData(testPath);
+    EXPECT_FALSE(elfDataEmpty(test));
     EXPECT_EQ(answer.elfHeader.e_shnum, test.elfHeader.e_shnum);
     compareSections(answer.elfHeader.e_shnum, answer.sections, test.sections);
     answerDestroyELFData(answer);
@@ -198,6 +213,7 @@ TEST(DynamicSymbols, Executable) {
     const char *testPath = ELF_BINARY;
     ElfData answer = answerGetELFData(testPath);
     ElfData test = getELFData(testPath);
+    EXPECT_FALSE(elfDataEmpty(test));
     ElfSymbolList answerSymbols = answer.dynSymbols;
     ElfSymbolList testSymbols = test.dynSymbols;
     compareElfSymbolList(answerSymbols, testSymbols);
@@ -209,6 +225,7 @@ TEST(DynamicSymbols, SharedObject) {
     const char *testPath = ELF_SHARED_OBJECT;
     ElfData answer = answerGetELFData(testPath);
     ElfData test = getELFData(testPath);
+    EXPECT_FALSE(elfDataEmpty(test));
     ElfSymbolList answerSymbols = answer.dynSymbols;
     ElfSymbolList testSymbols = test.dynSymbols;
     compareElfSymbolList(answerSymbols, testSymbols);
@@ -220,6 +237,7 @@ TEST(OtherSymbols, ExecutableEmpty) {
     const char *testPath = ELF_BINARY;
     ElfData answer = answerGetELFData(testPath);
     ElfData test = getELFData(testPath);
+    EXPECT_FALSE(elfDataEmpty(test));
     ElfSymbolList answerSymbols = answer.otherSymbols;
     ElfSymbolList testSymbols = test.otherSymbols;
     compareElfSymbolList(answerSymbols, testSymbols);
@@ -231,6 +249,7 @@ TEST(OtherSymbols, SharedObjectEmpty) {
     const char *testPath = ELF_SHARED_OBJECT;
     ElfData answer = answerGetELFData(testPath);
     ElfData test = getELFData(testPath);
+    EXPECT_FALSE(elfDataEmpty(test));
     ElfSymbolList answerSymbols = answer.otherSymbols;
     ElfSymbolList testSymbols = test.otherSymbols;
     compareElfSymbolList(answerSymbols, testSymbols);
@@ -242,6 +261,7 @@ TEST(OtherSymbols, Executable) {
     const char *testPath = ELF_OTHER_SYMBOLS;
     ElfData answer = answerGetELFData(testPath);
     ElfData test = getELFData(testPath);
+    EXPECT_FALSE(elfDataEmpty(test));
     ElfSymbolList answerSymbols = answer.otherSymbols;
     ElfSymbolList testSymbols = test.otherSymbols;
     compareElfSymbolList(answerSymbols, testSymbols);
@@ -251,14 +271,10 @@ TEST(OtherSymbols, Executable) {
 
 TEST(Error, NonExistentFile) {
     ElfData test = getELFData(NON_EXISTENT_FILE);
-    ElfData answer;
-    bzero(&answer, sizeof(ElfData));
-    EXPECT_EQ(0, memcmp(&answer, &test, sizeof(ElfData)));
+    EXPECT_TRUE(elfDataEmpty(test));
 }
 
 TEST(Error, NonELFFile) {
     ElfData test = getELFData(NON_ELF_FILE);
-    ElfData answer;
-    bzero(&answer, sizeof(ElfData));
-    EXPECT_EQ(0, memcmp(&answer, &test, sizeof(ElfData)));
+    EXPECT_TRUE(elfDataEmpty(test));
 }
