@@ -56,3 +56,22 @@ it on the initial project will produce a large quantity of failure text!
 
 * [ELF man page](http://man7.org/linux/man-pages/man5/elf.5.html)
 * [Wikipedia: ELF](https://en.wikipedia.org/wiki/Executable_and_Linkable_Format)
+
+## Experimental WSL + VS Code Support
+
+The Windows Subsystem for Linux (WSL) allows you to install Ubuntu 18.04.1 LTS
+and execute it alongside your Windows kernel in order to run standard ELF
+binaries. WSL has some tradeoffs but is capable of handling this project.
+
+You will need to install and configure WSL and Ubuntu 18.04.1 LTS yourself.
+In your VS Code settings, you will want to change your terminal to WSL
+(and not the standard Windows command line):
+
+```json
+"terminal.integrated.shell.windows": "C:\\Windows\\System32\\wsl.exe"
+```
+
+The included `tasks.json` and `launch.json` should enable build, test, and debug
+inside of VS Code. Debugging requires the
+[VSCode WSL workspaceFolder](https://marketplace.visualstudio.com/items?itemName=lfurzewaddock.vscode-wsl-workspacefolder)
+extension due to limitations in VS Code.
