@@ -55,8 +55,8 @@ else
     ALL_PASS=1
 fi
 
-# This string means all 13 tests passed (which means 0 failed)
-if grep -qF "[  PASSED  ] 13 tests." $STD_TEMPFILE; then
+# This string means all 18 tests passed (which means 0 failed)
+if grep -qF "[  PASSED  ] 18 tests." $STD_TEMPFILE; then
     echo -e "[ \e[32mPASS\e[39m ]: Functional tests"
 else
     echo -e "[ \e[31mFAIL\e[39m ]: Functional tests"
