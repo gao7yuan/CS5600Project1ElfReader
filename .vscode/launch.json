@@ -27,7 +27,7 @@
           "debuggerPath": "/usr/bin/gdb"
         },
         "sourceFileMap": {
-          "${workspaceRoot}": "${command:extension.vscode-wsl-workspaceFolder}"
+          "${command:extension.vscode-wsl-workspaceFolder}": "${workspaceRoot}"
         }
       }
     }

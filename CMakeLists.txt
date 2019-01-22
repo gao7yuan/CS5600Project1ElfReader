@@ -15,6 +15,7 @@ if(result)
   message(FATAL_ERROR "Build step for googletest failed: ${result}")
 endif()
 
+set(CMAKE_BUILD_TYPE Debug)
 add_subdirectory(${CMAKE_BINARY_DIR}/ext/googletest/src
                  ${CMAKE_BINARY_DIR}/ext/googletest/build
                  EXCLUDE_FROM_ALL)
