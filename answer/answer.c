@@ -62,50 +62,46 @@ ElfData getELFData(const char *executable) {
 
     /* program header */
 
-    Elf64_Phdr *programHeader = NULL; // default for program header is NULL
+    elfData.programHeader = NULL; // default for program header is NULL
     // if program header offset is 0, or number of program headers in elf file is 0,
     // then program header is NULL; otherwise read and copy from memory
     if (elfData.elfHeader.e_phoff != 0 && elfData.elfHeader.e_phnum != 0) {
         Elf64_Phdr *phdr_ptr = (Elf64_Phdr * )(
                 map_start + elfData.elfHeader.e_phoff); // program header pointer in memory
-        programHeader = (Elf64_Phdr *) malloc(
-                elfData.elfHeader.e_phnum * sizeof(Elf64_Phdr)); // malloc array for copying program headers
+        elfData.programHeader = (Elf64_Phdr *) malloc(
+                elfData.elfHeader.e_phnum * sizeof(Elf64_Phdr)); // malloc space for copying program headers
         // copy program headers
-        memcpy(programHeader, phdr_ptr, elfData.elfHeader.e_phnum * sizeof(Elf64_Phdr));
+        memcpy(elfData.programHeader, phdr_ptr, elfData.elfHeader.e_phnum * sizeof(Elf64_Phdr));
     }
-
-    // assign value to related field
-    elfData.programHeader = programHeader;
 
     /* sections */
 
-    ElfSection *sections = NULL; // default sections is NULL if section header in elf file is empty
+    elfData.sections = NULL; // default sections is NULL if section header in elf file is empty
     // if section header offset is 0 and number of section headers in elf file is 0,
     // then sections is NULL; otherwise read from memory and copy
     if (elfData.elfHeader.e_shoff != 0 && elfData.elfHeader.e_shnum != 0) {
-        Elf64_Shdr *shdr_ptr = (Elf64_Shdr * )(map_start + elfData.elfHeader.e_shoff); // pointer to section header
-        sections = (ElfSection *) malloc(elfData.elfHeader.e_shnum * sizeof(ElfSection)); // malloc array for sections
+        Elf64_Shdr *shdr_ptr = (Elf64_Shdr * )(
+                map_start + elfData.elfHeader.e_shoff); // pointer to section headers in memory
+        elfData.sections = (ElfSection *) malloc(
+                elfData.elfHeader.e_shnum * sizeof(ElfSection)); // malloc space for sections
         // copy section headers one by one
         for (int i = 0; i < elfData.elfHeader.e_shnum; i++) {
-            memcpy(&(sections[i].sectionHeader), &shdr_ptr[i], sizeof(Elf64_Shdr));
-            sections[i].sectionName = NULL; // initialize sectionName, which will be assigned other values later
+            memcpy(&(elfData.sections[i].sectionHeader), &shdr_ptr[i], sizeof(Elf64_Shdr));
+            elfData.sections[i].sectionName = NULL; // initialize sectionName, which will be assigned other values later
         }
     }
 
     // add sections names by obtaining the names from section name string table
-    if (sections != NULL) {
+    if (elfData.sections != NULL) {
         for (int i = 0; i < elfData.elfHeader.e_shnum; i++) {
             // find the section name in memory by finding the offset of it
             // starting address + offset of section name string table + index (offset) of section name
-            char *sh_name_ptr = map_start + sections[elfData.elfHeader.e_shstrndx].sectionHeader.sh_offset +
-                                sections[i].sectionHeader.sh_name;
+            char *sh_name_ptr = map_start + elfData.sections[elfData.elfHeader.e_shstrndx].sectionHeader.sh_offset +
+                                elfData.sections[i].sectionHeader.sh_name;
             // copy section name string to sectionName field
-            sections[i].sectionName = strdup(sh_name_ptr);
+            elfData.sections[i].sectionName = strdup(sh_name_ptr);
         }
     }
-
-    // assign value to related field
-    elfData.sections = sections;
 
     /* symbols */
 
@@ -125,27 +121,27 @@ ElfData getELFData(const char *executable) {
     elfData.dynSymbols.size = 0;
     elfData.otherSymbols.size = 0;
 
-    if (sections != NULL) {
+    if (elfData.sections != NULL) {
         // go through all the sections and find dynamic symbols, string table for dynamic symbols,
         // other symbols, and string table for other symbols
         for (int i = 0; i < elfData.elfHeader.e_shnum; i++) {
             // catch symbol pointers and symbol sizes
-            if (strcmp(sections[i].sectionName, ".dynsym") == 0) {
-                dynsym_ptr = (Elf64_Sym * )(map_start + sections[i].sectionHeader.sh_offset);
+            if (strcmp(elfData.sections[i].sectionName, ".dynsym") == 0) {
+                dynsym_ptr = (Elf64_Sym * )(map_start + elfData.sections[i].sectionHeader.sh_offset);
                 // number of dynamic symbols = section size / size of one entry
-                num_dynsym = sections[i].sectionHeader.sh_size / sections[i].sectionHeader.sh_entsize;
+                num_dynsym = elfData.sections[i].sectionHeader.sh_size / elfData.sections[i].sectionHeader.sh_entsize;
             }
-            if (strcmp(sections[i].sectionName, ".symtab") == 0) {
-                othersym_ptr = (Elf64_Sym * )(map_start + sections[i].sectionHeader.sh_offset);
+            if (strcmp(elfData.sections[i].sectionName, ".symtab") == 0) {
+                othersym_ptr = (Elf64_Sym * )(map_start + elfData.sections[i].sectionHeader.sh_offset);
                 // number of other symbols = section size / size of one entry
-                num_othersym = sections[i].sectionHeader.sh_size / sections[i].sectionHeader.sh_entsize;
+                num_othersym = elfData.sections[i].sectionHeader.sh_size / elfData.sections[i].sectionHeader.sh_entsize;
             }
             // catch pointers to symbol string names
-            if (strcmp(sections[i].sectionName, ".dynstr") == 0) {
-                dynsym_str_ptr = map_start + sections[i].sectionHeader.sh_offset;
+            if (strcmp(elfData.sections[i].sectionName, ".dynstr") == 0) {
+                dynsym_str_ptr = map_start + elfData.sections[i].sectionHeader.sh_offset;
             }
-            if (strcmp(sections[i].sectionName, ".strtab") == 0) {
-                othersym_str_ptr = map_start + sections[i].sectionHeader.sh_offset;
+            if (strcmp(elfData.sections[i].sectionName, ".strtab") == 0) {
+                othersym_str_ptr = map_start + elfData.sections[i].sectionHeader.sh_offset;
             }
         }
     }
@@ -158,8 +154,6 @@ ElfData getELFData(const char *executable) {
             elfData.dynSymbols.list[i].name = NULL; // default name is NULL unless st_name is nonzero
             if (elfData.dynSymbols.list[i].symbol.st_name != 0) {
                 char *name = (char *) (dynsym_str_ptr + elfData.dynSymbols.list[i].symbol.st_name);
-//                elfData.dynSymbols.list[i].name = (char *) malloc(strlen(name) + 1);
-//                memcpy(elfData.dynSymbols.list[i].name, name, strlen(name));
                 elfData.dynSymbols.list[i].name = strdup(name);
             }
         }
@@ -174,9 +168,6 @@ ElfData getELFData(const char *executable) {
             elfData.otherSymbols.list[i].name = NULL; // default name is NULL unless st_name is nonzero
             if (elfData.otherSymbols.list[i].symbol.st_name != 0) {
                 char *name = (char *) (othersym_str_ptr + elfData.otherSymbols.list[i].symbol.st_name);
-//                size_t len = strlen(name) + 1;
-//                elfData.otherSymbols.list[i].name = (char *) malloc(len);
-//                memcpy(elfData.otherSymbols.list[i].name, name, strlen(name));
                 elfData.otherSymbols.list[i].name = strdup(name);
             }
         }
@@ -191,8 +182,6 @@ ElfData getELFData(const char *executable) {
 }
 
 void destroyELFData(ElfData elfData) {
-    // This demonstrates valgrind leak detection.
-//    char *leak = malloc(1);
 
     // programHeader
     if (elfData.programHeader != NULL) {
@@ -202,6 +191,7 @@ void destroyELFData(ElfData elfData) {
 
     // sections
     if (elfData.sections != NULL) {
+        // free section names one by one
         for (int i = 0; i < elfData.elfHeader.e_shnum; i++) {
             free(elfData.sections[i].sectionName);
             elfData.sections[i].sectionName = NULL;
@@ -212,6 +202,7 @@ void destroyELFData(ElfData elfData) {
 
     // symbols
     if (elfData.dynSymbols.list != NULL) {
+        // free symbol names one by one
         for (int i = 0; i < elfData.dynSymbols.size; i++) {
             if (elfData.dynSymbols.list[i].name != NULL) {
                 free(elfData.dynSymbols.list[i].name);
@@ -223,6 +214,7 @@ void destroyELFData(ElfData elfData) {
     }
 
     if (elfData.otherSymbols.list != NULL) {
+        // free symbol names one by one
         for (int i = 0; i < elfData.otherSymbols.size; i++) {
             if (elfData.otherSymbols.list[i].name != NULL) {
                 free(elfData.otherSymbols.list[i].name);
