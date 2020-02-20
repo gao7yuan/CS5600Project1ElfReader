@@ -1,0 +1,6 @@
+50/50 - Tests Pass
+20/20 - No Memory Leaks
+20/20 - Documentation
+10/10 - Clean Code
+
+100/100s
